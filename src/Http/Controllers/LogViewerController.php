@@ -36,6 +36,8 @@ class LogViewerController extends Controller
     /** @var string */
     protected $showRoute = 'log-viewer::logs.show';
 
+    protected $apps = [];
+
     /* -----------------------------------------------------------------
      |  Constructor
      | -----------------------------------------------------------------
@@ -50,6 +52,7 @@ class LogViewerController extends Controller
     {
         $this->logViewer = $logViewer;
         $this->perPage = config('log-viewer.per-page', $this->perPage);
+        $this->apps = config('log-viewer.apps', []);
     }
 
     /* -----------------------------------------------------------------
@@ -62,13 +65,20 @@ class LogViewerController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
-        $stats     = $this->logViewer->statsTable();
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        $stats = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->statsTable();
+
         $chartData = $this->prepareChartData($stats);
         $percents  = $this->calcPercentages($stats->footer(), $stats->header());
-
-        return $this->view('dashboard', compact('chartData', 'percents'));
+        return $this->view('dashboard', compact('chartData', 'percents', 'app', 'apps'));
     }
 
     /**
@@ -80,11 +90,18 @@ class LogViewerController extends Controller
      */
     public function listLogs(Request $request)
     {
-        $stats   = $this->logViewer->statsTable();
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        $stats   = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->statsTable();
         $headers = $stats->header();
         $rows    = $this->paginate($stats->rows(), $request);
 
-        return $this->view('logs', compact('headers', 'rows', 'footer'));
+        return $this->view('logs', compact('headers', 'rows', 'footer', 'app', 'apps'));
     }
 
     /**
@@ -94,13 +111,20 @@ class LogViewerController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function show($date)
+    public function show($date, Request $request)
     {
-        $log     = $this->getLogOrFail($date);
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        $log     = $this->getLogOrFail($date, $app);
         $levels  = $this->logViewer->levelsNames();
         $entries = $log->entries($level = 'all')->paginate($this->perPage);
 
-        return $this->view('show', compact('log', 'levels', 'level', 'search', 'entries'));
+        return $this->view('show', compact('log', 'levels', 'level', 'search', 'entries', 'app', 'apps'));
     }
 
     /**
@@ -111,17 +135,24 @@ class LogViewerController extends Controller
      *
      * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
      */
-    public function showByLevel($date, $level)
+    public function showByLevel($date, $level, Request $request)
     {
-        $log = $this->getLogOrFail($date);
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        $log = $this->getLogOrFail($date, $app);
 
         if ($level === 'all')
-            return redirect()->route($this->showRoute, [$date]);
+            return redirect()->route($this->showRoute, [$date, 'app' => $app]);
 
-        $levels  = $this->logViewer->levelsNames();
-        $entries = $this->logViewer->entries($date, $level)->paginate($this->perPage);
+        $levels  = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->levelsNames();
+        $entries = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->entries($date, $level)->paginate($this->perPage);
 
-        return $this->view('show', compact('log', 'levels', 'level', 'search', 'entries'));
+        return $this->view('show', compact('log', 'levels', 'level', 'search', 'entries', 'app', 'apps'));
     }
 
     /**
@@ -134,17 +165,24 @@ class LogViewerController extends Controller
      * @return \Illuminate\View\View
      */
     public function search($date, $level = 'all', Request $request) {
-        $log   = $this->getLogOrFail($date);
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        $log   = $this->getLogOrFail($date, $app);
 
         if (is_null($query = $request->get('query')))
-            return redirect()->route('log-viewer::logs.show', [$date]);
+            return redirect()->route('log-viewer::logs.show', [$date, 'app' => $app]);
 
-        $levels  = $this->logViewer->levelsNames();
+        $levels  = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->levelsNames();
         $entries = $log->entries($level)->filter(function (LogEntry $value) use ($query) {
             return Str::contains($value->header, $query);
         })->paginate($this->perPage);
 
-        return $this->view('show', compact('log', 'levels', 'level', 'query', 'entries'));
+        return $this->view('show', compact('log', 'levels', 'level', 'query', 'entries', 'app', 'apps'));
     }
 
     /**
@@ -154,9 +192,16 @@ class LogViewerController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
      */
-    public function download($date)
+    public function download($date, Request $request)
     {
-        return $this->logViewer->download($date);
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
+        return $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->download($date);
     }
 
     /**
@@ -168,13 +213,20 @@ class LogViewerController extends Controller
      */
     public function delete(Request $request)
     {
+        $app = $request->get('app');
+        $apps = $this->apps;
+        if ($apps) {
+            $app = ($app && in_array($app, $this->apps)) ? $app : $this->apps[0];
+        } else {
+            $app = config('log-viewer.defaultApp', '');
+        }
         if ( ! $request->ajax())
             abort(405, 'Method Not Allowed');
 
         $date = $request->get('date');
 
         return response()->json([
-            'result' => $this->logViewer->delete($date) ? 'success' : 'error'
+            'result' => $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->delete($date) ? 'success' : 'error'
         ]);
     }
 
@@ -227,12 +279,12 @@ class LogViewerController extends Controller
      *
      * @return \Arcanedev\LogViewer\Entities\Log|null
      */
-    protected function getLogOrFail($date)
+    protected function getLogOrFail($date, $app)
     {
         $log = null;
 
         try {
-            $log = $this->logViewer->get($date);
+            $log = $this->logViewer->setPath(config('log-viewer.storage-path') . '/' . $app)->get($date);
         }
         catch (LogNotFoundException $e) {
             abort(404, $e->getMessage());

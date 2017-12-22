@@ -4,6 +4,16 @@
     <h1 class="page-header">Dashboard</h1>
 
     <div class="row">
+        @if($apps)
+        <div class="col-md-9" >
+            <lable style="font-size:16px; font-weight: bold;">APPS：</lable>
+            <select id="changeApps" style="width: 150px; height: 42px; line-height: 42px; margin:0; padding: 0; ">
+                @foreach($apps $value)
+                <option value="{{ $value }}" @if($app == $value )selected="selected" @endif>{{ $value }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
         <div class="col-md-3">
             <canvas id="stats-doughnut-chart" height="300"></canvas>
         </div>
@@ -46,6 +56,9 @@
                         position: 'bottom'
                     }
                 }
+            });
+            $('#changeApps').change(function(){
+                window.location='?app=' + this.value
             });
         });
     </script>

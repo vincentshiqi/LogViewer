@@ -1,6 +1,16 @@
 @extends('log-viewer::_template.master')
 
 @section('content')
+    @if($apps)
+    <div class="col-md-9" >
+        <lable style="font-size:16px; font-weight: bold;">APPS：</lable>
+        <select id="changeApps" style="width: 150px; height: 42px; line-height: 42px; margin:0; padding: 0; ">
+            @foreach($apps $value)
+            <option value="{{ $value }}" @if($app == $value )selected="selected" @endif>{{ $value }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
     <h1 class="page-header">Log [{{ $log->date }}]</h1>
 
     <div class="row">
@@ -14,7 +24,7 @@
                     Log info :
 
                     <div class="group-btns pull-right">
-                        <a href="{{ route('log-viewer::logs.download', [$log->date]) }}" class="btn btn-xs btn-success">
+                        <a href="{{ route('log-viewer::logs.download', [$log->date, 'app' => $app]) }}" class="btn btn-xs btn-success">
                             <i class="fa fa-download"></i> DOWNLOAD
                         </a>
                         <a href="#delete-log-modal" class="btn btn-xs btn-danger" data-toggle="modal">
@@ -54,13 +64,13 @@
                 </div>
                 <div class="panel-footer">
                     {{-- Search --}}
-                    <form action="{{ route('log-viewer::logs.search', [$log->date, $level]) }}" method="GET">
+                    <form action="{{ route('log-viewer::logs.search', [$log->date, $level, 'app' => $app]) }}" method="GET">
                         <div class=form-group">
                             <div class="input-group">
                                 <input id="query" name="query" class="form-control"  value="{!! request('query') !!}" placeholder="typing something to search">
                                 <span class="input-group-btn">
                                     @if (request()->has('query'))
-                                        <a href="{{ route('log-viewer::logs.show', [$log->date]) }}" class="btn btn-default"><span class="glyphicon glyphicon-remove"></span></a>
+                                        <a href="{{ route('log-viewer::logs.show', [$log->date, 'app' => $app]) }}" class="btn btn-default"><span class="glyphicon glyphicon-remove"></span></a>
                                     @endif
                                     <button id="search-btn" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>
                                 </span>
@@ -158,7 +168,7 @@
     {{-- DELETE MODAL --}}
     <div id="delete-log-modal" class="modal fade">
         <div class="modal-dialog">
-            <form id="delete-log-form" action="{{ route('log-viewer::logs.delete') }}" method="POST">
+            <form id="delete-log-form" action="{{ route('log-viewer::logs.delete', ['app' => $app]) }}" method="POST">
                 <input type="hidden" name="_method" value="DELETE">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="date" value="{{ $log->date }}">

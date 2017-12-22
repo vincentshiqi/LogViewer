@@ -1,6 +1,16 @@
 @extends('log-viewer::_template.master')
 
 @section('content')
+    @if($apps)
+    <div class="col-md-9" >
+        <lable style="font-size:16px; font-weight: bold;">APPS：</lable>
+        <select id="changeApps" style="width: 150px; height: 42px; line-height: 42px; margin:0; padding: 0; ">
+            @foreach($apps $value)
+            <option value="{{ $value }}" @if($app == $value )selected="selected" @endif>{{ $value }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
     <h1 class="page-header">Logs</h1>
 
     {!! $rows->render() !!}
@@ -34,17 +44,17 @@
                                 @elseif ($value == 0)
                                     <span class="level level-empty">{{ $value }}</span>
                                 @else
-                                    <a href="{{ route('log-viewer::logs.filter', [$date, $key]) }}">
+                                    <a href="{{ route('log-viewer::logs.filter', [$date, $key, 'app' => $app]) }}">
                                         <span class="level level-{{ $key }}">{{ $value }}</span>
                                     </a>
                                 @endif
                             </td>
                         @endforeach
                         <td class="text-right">
-                            <a href="{{ route('log-viewer::logs.show', [$date]) }}" class="btn btn-xs btn-info">
+                            <a href="{{ route('log-viewer::logs.show', [$date, 'app' => $app]) }}" class="btn btn-xs btn-info">
                                 <i class="fa fa-search"></i>
                             </a>
-                            <a href="{{ route('log-viewer::logs.download', [$date]) }}" class="btn btn-xs btn-success">
+                            <a href="{{ route('log-viewer::logs.download', [$date, 'app' => $app]) }}" class="btn btn-xs btn-success">
                                 <i class="fa fa-download"></i>
                             </a>
                             <a href="#delete-log-modal" class="btn btn-xs btn-danger" data-log-date="{{ $date }}">

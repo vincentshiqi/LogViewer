@@ -8,7 +8,7 @@
         <div class="col-md-9" >
             <lable style="font-size:16px; font-weight: bold;">APPS：</lable>
             <select id="changeApps" style="width: 150px; height: 42px; line-height: 42px; margin:0; padding: 0; ">
-                @foreach($apps $value)
+                @foreach($apps as $value)
                 <option value="{{ $value }}" @if($app == $value )selected="selected" @endif>{{ $value }}</option>
                 @endforeach
             </select>

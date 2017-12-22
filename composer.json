@@ -1,15 +1,9 @@
 {
-    "name":        "arcanedev/log-viewer",
+    "name":        "vincent/Logviewer",
     "description": "Provides a Log Viewer for Laravel 5",
-    "keywords":    ["arcanedev", "arcanesoft", "laravel", "log", "log viewer", "log-viewer", "logviewer"],
-    "homepage":    "https://github.com/ARCANEDEV/LogViewer",
+    "keywords":    ["vincent", "arcanesoft", "laravel", "log", "log viewer", "log-viewer", "logviewer"],
+    "homepage":    "https://github.com/vincentshiqi/LogViewer",
     "authors": [
-        {
-            "name":     "ARCANEDEV",
-            "email":    "arcanedev.maroc@gmail.com",
-            "homepage": "https://github.com/arcanedev-maroc",
-            "role":     "Developer"
-        }
     ],
     "type":    "library",
     "license": "MIT",
